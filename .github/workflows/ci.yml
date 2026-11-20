@@ -97,7 +97,7 @@ jobs:
           for i in $(seq 1 60); do curl -sf http://localhost:5173/api/health && break; sleep 1; done
       - run: pnpm --filter @app/web test:e2e
       - if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: playwright-report
           path: apps/web/playwright-report
