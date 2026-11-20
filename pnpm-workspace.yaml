@@ -1,0 +1,23 @@
+packages:
+  - apps/*
+  - packages/*
+onlyBuiltDependencies:
+  - esbuild
+  - "@biomejs/biome"
+# Algunas dependencias de Radix usan tslib sin declararlo; pnpm (estricto) lo necesita explícito.
+packageExtensions:
+  react-remove-scroll:
+    dependencies:
+      tslib: "^2"
+  react-remove-scroll-bar:
+    dependencies:
+      tslib: "^2"
+  react-style-singleton:
+    dependencies:
+      tslib: "^2"
+  use-callback-ref:
+    dependencies:
+      tslib: "^2"
+  use-sidecar:
+    dependencies:
+      tslib: "^2"

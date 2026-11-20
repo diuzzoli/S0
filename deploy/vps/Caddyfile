@@ -1,0 +1,32 @@
+# Caddy obtiene y renueva HTTPS automáticamente para {$DOMAIN}.
+{$DOMAIN} {
+	encode zstd gzip
+
+	# API (mismo origen que la web: sin CORS, cookies first-party).
+	handle /api/* {
+		# Caddy reemplaza X-Forwarded-For con la IP real del cliente (no confía en la entrante).
+		reverse_proxy api:3000
+	}
+
+	# Assets con hash en el nombre: cache de 1 año.
+	@assets path /assets/*
+	header @assets Cache-Control "public, max-age=31536000, immutable"
+
+	# SPA: cualquier ruta que no sea archivo devuelve index.html (sin cache).
+	handle {
+		root * /srv
+		try_files {path} /index.html
+		header /index.html Cache-Control "no-cache"
+		file_server
+	}
+
+	header {
+		Strict-Transport-Security "max-age=63072000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		# CSP de la web. Si sumás Sentry, agregá su dominio de ingest a connect-src.
+		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+		-Server
+	}
+}

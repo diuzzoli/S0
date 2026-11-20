@@ -1,0 +1,28 @@
+{
+  "name": "s0-app",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.28.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "pnpm --parallel --filter @app/api --filter @app/web dev",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "check": "biome check .",
+    "check:fix": "biome check --write .",
+    "db:generate": "pnpm --filter @app/db generate",
+    "db:migrate": "pnpm --filter @app/db migrate",
+    "db:studio": "pnpm --filter @app/db studio",
+    "services:up": "docker compose up -d",
+    "services:down": "docker compose down",
+    "db:migrate:test": "DATABASE_URL=postgres://app:app@localhost:5432/app_test pnpm --filter @app/db migrate"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.6.8",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.1"
+  }
+}

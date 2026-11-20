@@ -1,0 +1,68 @@
+# Producción en un VPS (Hetzner, Latincloud, etc.) con Docker Compose.
+# Ver docs/s0/deploy.md para el paso a paso.
+name: app
+
+services:
+  web:
+    image: ${REGISTRY:-ghcr.io/OWNER/REPO}/web:${TAG:-latest}
+    restart: unless-stopped
+    ports: ["80:80", "443:443", "443:443/udp"]
+    environment:
+      DOMAIN: ${DOMAIN}
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on: [api]
+
+  api:
+    image: ${REGISTRY:-ghcr.io/OWNER/REPO}/api:${TAG:-latest}
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      TRUST_PROXY: "true"
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  # Corre las migraciones pendientes antes de cada arranque de la API.
+  migrate:
+    image: ${REGISTRY:-ghcr.io/OWNER/REPO}/api:${TAG:-latest}
+    command: ["node", "dist/migrate.js"]
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    # Sin puertos publicados: solo accesible dentro de la red de Docker.
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 5s
+      retries: 10
+
+  # Backups programados con UI web. Solo escucha en localhost del VPS:
+  # acceder con un túnel SSH →  ssh -L 4005:localhost:4005 usuario@vps  y abrir http://localhost:4005
+  # Configurar un destino EXTERNO (S3/R2/B2): un backup en el mismo VPS no es un backup.
+  databasus:
+    image: databasus/databasus:latest
+    restart: unless-stopped
+    ports: ["127.0.0.1:4005:4005"]
+    volumes:
+      - databasus_data:/databasus-data
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:
+  databasus_data:
